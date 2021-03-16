@@ -149,15 +149,14 @@ class ScalaDriverPersistenceJournaller(val driver: ScalaMongoDriver) extends Mon
     }
 
     if (driver.realtimeEnablePersistence)
-      batchFuture.andThen {
-        case Success(batch) =>
-          val f = doBatchAppend(batch, realtime)
-          f.onComplete {
-            case scala.util.Failure(t) =>
-              logger.error("Error during write to realtime collection", t)
-            case _ => ()
-          }
-          f
+      batchFuture.flatMap { batch =>
+        val f = doBatchAppend(batch, realtime)
+        f.onComplete {
+          case scala.util.Failure(t) =>
+            logger.error("Error during write to realtime collection", t)
+          case _ => ()
+        }
+        f
       }.map(squashToUnit)
     else
       batchFuture.map(squashToUnit)
